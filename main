@@ -1,0 +1,52 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=1,vmem=8g,walltime=2:00:00
+#PBS -N app-registration-t1w
+#PBS -V
+
+
+#set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/"
+
+CPUs_available() {
+    local cpu_load=$( top -b -n2 | grep "Cpu(s)" | awk '{print $2+$4}' | tail -n1 )
+    local cpu_num_all=$( getconf _NPROCESSORS_ONLN )
+    # estimate used cores
+    local used=$( printf "%.0f" "$(echo "$cpu_load/100*$cpu_num_all" | bc -l)" )
+    echo $(( cpu_num_all - used ))
+}
+
+setITKthreads () {
+			OMP_NUM_THREADS=$1
+			ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$1  										# multi-threading ( 4 ANTs)
+			export OMP_NUM_THREADS
+			export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS
+			
+			}
+
+
+### === Load parameters from config.json ===
+t1w=$(jq -r .t1 config.json)
+t2w=$(jq -r .t2 config.json)
+mask=$(jq -r .mask config.json)
+dim=3
+
+if [ -n "${mask}" ]; then
+  mask_opt=" -x $mask "
+
+fi
+
+if [ -n "${t1w}" ]; then
+  input=${t1w}
+  outputname=t1.nii.gz
+fi
+
+if [ -n "${t2w}" ]; then
+  input=${t2w}
+  outputname=t2.nii.gz
+fi
+
+mkdir ./bias_corr
+output=./bias_corr/${outputname}
+setITKthreads $nthreads
+N4BiasFieldCorrection -d $dim -i  $input ${mask_opt} -o $output 
