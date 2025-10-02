@@ -46,7 +46,7 @@ if [ -n "${t2w}" ]; then
   outputname=t2.nii.gz
 fi
 
-mkdir ./bias_corr
-output=./bias_corr/${outputname}
+mkdir ./bias_corrected
+output=./bias_corrected/${outputname}
 setITKthreads $nthreads
 N4BiasFieldCorrection -d $dim -i  $input ${mask_opt} -o $output 
