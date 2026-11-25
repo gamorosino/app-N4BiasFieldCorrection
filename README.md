@@ -1,123 +1,67 @@
-# app-N4BiasFieldCorrection
-**N4 Bias Field Correction (ANTs)**
+<h1 align="center">N4 Bias Field Correction (T2w)</h1>
 
-A portable, containerized wrapper around **ANTs’ `N4BiasFieldCorrection`** (Tustison, N. J. et al, 2010)(Avants, B. B. et al, 2011) to correct intensity inhomogeneity in **T1w or T2w** anatomical MRI. Optional brain masking is supported to improve bias estimation and reduce runtime.
+<p align="center">
+  Corrects intensity inhomogeneity (bias field) in a T2-weighted image with ANTs N4BiasFieldCorrection, optionally restricted to a brain mask.
+</p>
 
----
+<p align="center">
+  <a href="https://github.com/brainlife/abcd-spec"><img src="https://img.shields.io/badge/ABCD_Spec-v1.1-green.svg" alt="ABCD Spec v1.1"></a>
+  <a href="https://doi.org/10.25663/brainlife.app.876"><img src="https://img.shields.io/badge/Brainlife-brainlife.app.876-blue.svg" alt="Run on brainlife.io"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-see_LICENSE-lightgrey.svg" alt="License"></a>
+</p>
 
-## Author
+## At a glance
 
-**Gabriele Amorosino**  
-(email: [gabriele.amorosino@utexas.edu](mailto:gabriele.amorosino@utexas.edu))
+<!-- brainlife-app:begin (generated from the App manifest; edit the manifest, not this block) -->
 
----
+> **Corrects intensity inhomogeneity (bias field) in a T2-weighted image with ANTs N4BiasFieldCorrection, optionally restricted to a brain mask.**
 
-## Description
+Runs N4BiasFieldCorrection -d 3 on the T2w image, passing the mask with -x, and writes the bias-corrected image. Use it before segmentation or registration when the image shows smooth intensity non-uniformity. The mask must be aligned with the T2w image.
 
-This app runs `N4BiasFieldCorrection` (ANTs) on a single anatomical input and produces a bias-corrected image.  
-- **Inputs:** one of `t1` *or* `t2` (NIfTI `.nii.gz`); optional `mask` (binary `.nii.gz`)  
-- **Dimensionality:** fixed to 3D (`-d 3`)  
-- **Multi-threading:** honors ITK/OMP thread env vars set by the script
+| | |
+|---|---|
+| **Inputs** | `neuro/anat/t2w` · `neuro/mask` (optional) |
+| **Outputs** | `neuro/anat/t2w` |
+| **Container** | `brainlife/ants:2.2.0-1bc` |
+| **Resources** | 1 CPUs · 8 GB memory · 2 h walltime |
+| **Run it** | [doi.org/10.25663/brainlife.app.876](https://doi.org/10.25663/brainlife.app.876) |
 
-Under the hood, the app pulls the ANTs container and executes:
+#### Inputs
 
-```
+| Input | Datatype | Required | Description |
+|---|---|---|---|
+| `t2` | `neuro/anat/t2w` | yes | T2-weighted anatomical image (NIfTI). |
+| `mask` | `neuro/mask` | no | Binary brain mask passed to N4 with -x. Must be aligned with the T2w image. |
 
-N4BiasFieldCorrection -d 3 -i <input.nii.gz> [-x <mask.nii.gz>] -o <output.nii.gz>
+#### Outputs
 
-````
+| Output | Datatype | Description |
+|---|---|---|
+| `bias_corrected` | `neuro/anat/t2w` | N4 bias-corrected T2-weighted image (t2.nii.gz). |
 
-Execution is via **Singularity**, with PBS headers included for HPC submission.
+<!-- brainlife-app:end -->
 
----
+## Running the App
 
-## Requirements
+### On brainlife.io
 
-- [Singularity](https://sylabs.io/guides/latest/user-guide/)
-- Sufficient RAM for your volumes (typ. ≥ 4–8 GB for standard T1w/T2w)
-- (Optional) A brain mask to improve robustness/speed on noisy data
+Open the App at [doi.org/10.25663/brainlife.app.876](https://doi.org/10.25663/brainlife.app.876), choose `neuro/anat/t2w`, `neuro/mask` from your project and press **Execute**. The results are saved to your project as `neuro/anat/t2w`.
 
----
+### Locally
 
-## Inputs
+You need [Singularity/Apptainer](https://apptainer.org/) (the App runs in `brainlife/ants:2.2.0-1bc`), [`jq`](https://jqlang.github.io/jq/).
 
-Provide **exactly one** anatomical input in `config.json`, plus an optional mask:
-
-- `t1` — path to T1w image (`.nii.gz`) **or**
-- `t2` — path to T2w image (`.nii.gz`)
-- `mask` *(optional)* — path to a binary brain mask (`.nii.gz`), passed as `-x`
-
-**Config schema**
-
-```json
-{
-  "t1": null,
-  "t2": null,
-  "mask": null
-}
-````
-
-> Supply **either** `t1` **or** `t2` (not both). Leave the unused key as `null`.
-
----
-
-## Usage
-
-### Running on Brainlife.io
-
-1. Open the app on Brainlife and click **Execute**.
-2. Provide one anatomical input (`t1` *or* `t2`) as `.nii.gz`.
-3. (Optional) Provide a `mask` (`.nii.gz`) to be passed as `-x`.
-4. Submit. Outputs will include a bias-corrected image.
-
-#### Via CLI (example)
-
-```bash
-bl login
-bl app run --id <app_id> --project <project_id> \
-  --input t1:<t1_dataset_id> \
-  --config config.json
-```
-
-Replace `t1:` with `t2:` if you’re providing a T2w image.
-
----
-
-### Running Locally / On HPC
-
-1. **Prepare `config.json`:**
-
-   **Example (T1w, with mask):**
+1. Clone this repository.
+2. Create `config.json` with the paths to your inputs and the parameters:
 
    ```json
-   { "t1": "sub-01_T1w.nii.gz", "t2": null, "mask": "sub-01_mask.nii.gz" }
+   {
+       "t2": "/path/to/t2/t2",
+       "mask": "/path/to/mask/mask"
+   }
    ```
 
-   **Example (T2w, no mask):**
-
-   ```json
-   { "t1": null, "t2": "sub-01_T2w.nii.gz", "mask": null }
-   ```
-
-2. **Run the script:**
-
-   ```bash
-   bash ./main
-   ```
-
-   On PBS/Torque clusters, you can also submit:
-
-   ```bash
-   qsub main
-   ```
-
----
-
-## Outputs
-
-* `bias_corrected/t1.nii.gz` **or** `bias_corrected/t2.nii.gz` — N4 bias–corrected anatomical volume
-
----
+3. Run `./main`.
 
 ## Container & Implementation Notes
 
@@ -134,18 +78,27 @@ Replace `t1:` with `t2:` if you’re providing a T2w image.
 
 ---
 
-## Citation
+## Citing
 
-If you use this app for your research, please cite:
+If you use this App, please cite it, the software it builds on and brainlife.io:
 
-* Avants, B. B., Tustison, N. J., Song, G., et al. (2011). **A reproducible evaluation of ANTs similarity metric performance in brain image registration.** *NeuroImage*, 54(3), 2033–2044.
-* Tustison, N. J., Avants, B. B., Cook, P. A., et al. (2010). **N4ITK: Improved N3 bias correction.** *IEEE Transactions on Medical Imaging*, 29(6), 1310–1320.
-* Hayashi, S., Caron, B.A., Heinsfeld, A.S. et al. **brainlife.io: a decentralized and open-source cloud platform to support neuroscience research.** Nat Methods 21, 809–813 (2024).
+- N4 Bias Field Correction (T2w). brainlife.io App. [doi:10.25663/brainlife.app.876](https://doi.org/10.25663/brainlife.app.876)
+- Avants BB, Tustison NJ, Song G, et al. A reproducible evaluation of ANTs similarity metric performance in brain image registration. NeuroImage 54(3):2033-2044 (2011).
+- Tustison NJ, Avants BB, Cook PA, et al. N4ITK: Improved N3 bias correction. IEEE Trans Med Imaging 29(6):1310-1320 (2010).
+- Avants, B. B., Tustison, N. J., Song, G., et al. (2011). **A reproducible evaluation of ANTs similarity metric performance in brain image registration.** *NeuroImage*, 54(3), 2033–2044.
+- Tustison, N. J., Avants, B. B., Cook, P. A., et al. (2010). **N4ITK: Improved N3 bias correction.** *IEEE Transactions on Medical Imaging*, 29(6), 1310–1320.
+- Hayashi, S., Caron, B.A., Heinsfeld, A.S. et al. **brainlife.io: a decentralized and open-source cloud platform to support neuroscience research.** Nat Methods 21, 809–813 (2024). ---
+- Avants et al. A reproducible evaluation of ANTs similarity metric performance in brain image registration. *NeuroImage* 54:2033-2044 (2011). [doi:10.1016/j.neuroimage.2010.09.025](https://doi.org/10.1016/j.neuroimage.2010.09.025)
+- Hayashi S, Caron BA, Heinsfeld AS, et al. brainlife.io: a decentralized and open-source cloud platform to support neuroscience research. *Nature Methods* 21:809–813 (2024). [doi:10.1038/s41592-024-02237-2](https://doi.org/10.1038/s41592-024-02237-2)
+- Avesani P, McPherson B, Hayashi S, et al. The open diffusion data derivatives, brain data upcycling via integrated publishing of derivatives and reproducible open cloud services. *Scientific Data* 6:69 (2019). [doi:10.1038/s41597-019-0073-y](https://doi.org/10.1038/s41597-019-0073-y)
+
+## Authors
+
+**Gabriele Amorosino**  
+(email:
 
 ---
 
 ## License
 
 See [LICENSE](LICENSE).
-
----
